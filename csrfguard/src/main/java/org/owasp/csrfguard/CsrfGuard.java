@@ -88,6 +88,27 @@ public final class CsrfGuard {
 		return SingletonHolder.instance;
 	}
 
+	/**
+	 * Create a {@link SecureRandom} for the specified algorithm and provider. If either is omitted, default
+	 * values are used. Special care is taken to successfully create an instance if the values are omitted,
+	 * allowing an application to run on both Sun's (Oracle's) and IBM's JDK with the same configuration.
+	 * <p>
+	 * If a provider is specified in the configuration it will be used or an exception is thrown.
+	 */
+	private static SecureRandom createSecureRandom(String algorithm, String provider) throws NoSuchAlgorithmException, NoSuchProviderException {
+	    if(algorithm != null && provider != null) {
+	        return SecureRandom.getInstance(algorithm, provider);
+	    } else if(algorithm != null) {
+	        return SecureRandom.getInstance(algorithm);
+	    } else {
+	        try {
+	            return SecureRandom.getInstance("SHA1PRNG");
+	        } catch(NoSuchAlgorithmException e) {
+	            return new SecureRandom();
+	        }
+	    }
+	}
+
 	public static void load(Properties properties) throws NoSuchAlgorithmException, InstantiationException, IllegalAccessException, ClassNotFoundException, IOException, NoSuchProviderException {
 		CsrfGuard csrfGuard = SingletonHolder.instance;
 
@@ -98,7 +119,9 @@ public final class CsrfGuard {
 		csrfGuard.setRotate(Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.Rotate", "false")));
 		csrfGuard.setTokenPerPage(Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.TokenPerPage", "false")));
 		csrfGuard.setTokenPerPagePrecreate(Boolean.valueOf(properties.getProperty("org.owasp.csrfguard.TokenPerPagePrecreate", "false")));
-		csrfGuard.setPrng(SecureRandom.getInstance(properties.getProperty("org.owasp.csrfguard.PRNG", "SHA1PRNG"), properties.getProperty("org.owasp.csrfguard.PRNG.Provider", "SUN")));
+		
+		csrfGuard.setPrng(createSecureRandom(properties.getProperty("org.owasp.csrfguard.PRNG"), properties.getProperty("org.owasp.csrfguard.PRNG.Provider")));
+		
 		csrfGuard.setNewTokenLandingPage(properties.getProperty("org.owasp.csrfguard.NewTokenLandingPage"));
 
 		//default to false if newTokenLandingPage is not set; default to true if set.
